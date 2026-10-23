@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Nebula Blaze — Gesture 3D Globe</title>
+  <meta name="description" content="Nebula Blaze: a hand-gesture-controlled 3D globe with vivid themes and animation modes. Manufactured by Saif Ur Rehman." />
+  <meta name="author" content="Saif Ur Rehman" />
+  <meta name="theme-color" content="#04040c" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='.4' stop-color='%2322f0d8'/%3E%3Cstop offset='1' stop-color='%238b5cf6'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%2304040c'/%3E%3Ccircle cx='32' cy='32' r='16' fill='url(%23g)'/%3E%3Cellipse cx='32' cy='32' rx='27' ry='8' fill='none' stroke='%23ff2bd6' stroke-width='3' transform='rotate(-20 32 32)'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="src/styles.css" />
+  <script async src="vendor/es-module-shims/es-module-shims.js"></script>
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+  </script>
+</head>
+<body class="booting">
+  <canvas id="stage" aria-label="Nebula 3D globe"></canvas>
+  <canvas id="sparkle" aria-hidden="true"></canvas>
+  <div id="vignette" aria-hidden="true"></div>
+
+  <!-- Welcome -->
+  <section id="welcome" aria-labelledby="w-title">
+    <div class="w-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+    <h1 id="w-title" class="logo"><span data-text="NEBULA">NEBULA</span><b>BLAZE</b></h1>
+    <p class="w-tag">Gesture-controlled 3D globe experience</p>
+    <p class="w-note">Your camera is used only to read hand movement, inside this browser. The camera picture and hand tracking are never shown or uploaded.</p>
+    <div class="w-actions">
+      <button id="btn-start" class="btn primary big"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Start Experience</button>
+      <button id="btn-mouse" class="btn ghost">Continue with mouse / touch</button>
+    </div>
+    <ul class="w-hints">
+      <li><kbd>✋</kbd> move hand to spin</li><li><kbd>✊</kbd> hold fist to pause</li><li><kbd>🤏</kbd> pinch for focus</li><li><kbd>✌</kbd> peace for next theme</li>
+    </ul>
+    <p class="w-credit">Manufactured by Saif Ur Rehman</p>
+  </section>
+
+  <!-- Top bar -->
+  <header id="topbar" class="ui">
+    <div class="brand"><span class="brand-dot"></span><span class="brand-name">NEBULA <b>BLAZE</b></span></div>
+    <div id="status" class="chip" data-state="off" role="status" aria-live="polite"><span class="dot"></span><span class="txt">Manual mode</span></div>
+    <div id="fps" class="chip mono hidden">-- FPS</div>
+    <nav class="tools" aria-label="Controls">
+      <button class="icon" id="b-camera" title="Camera on/off (C)"><svg viewBox="0 0 24 24"><path d="M15 8l5-3v14l-5-3v2H3V6h12z"/></svg></button>
+      <button class="icon" id="b-pause" title="Pause / resume (Space)"><svg viewBox="0 0 24 24" class="i-pause"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg><svg viewBox="0 0 24 24" class="i-play"><path d="M8 5v14l11-7z"/></svg></button>
+      <button class="icon" id="b-reverse" title="Reverse direction (←/→)"><svg viewBox="0 0 24 24"><path d="M4 9h13l-3-3 1.4-1.4L21 10l-5.6 5.4L14 14l3-3H4zM20 15H7l3 3-1.4 1.4L3 14"/></svg></button>
+      <button class="icon" id="b-reset" title="Reset view (R)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
+      <button class="icon" id="b-remix" title="Remix: random combo (X)"><svg viewBox="0 0 24 24"><path d="M16 3h5v5l-1.8-1.8-4.6 4.6-1.4-1.4 4.6-4.6zM3 19.6l12.8-12.8 1.4 1.4L4.4 21zM14.6 13.2l1.4-1.4 3.2 3.2L21 13.2V19h-5.8l1.8-1.8zM3 4.4 4.4 3l5.2 5.2-1.4 1.4z"/></svg></button>
+      <button class="icon" id="b-burst" title="Supernova burst (B)"><svg viewBox="0 0 24 24"><path d="M12 2l2 6 6-2-4 5 5 4-6 .5L14 22l-2-6-2 6-1-6.5L3 15l5-4-4-5 6 2z"/></svg></button>
+      <button class="icon" id="b-snap" title="Snapshot (P)"><svg viewBox="0 0 24 24"><path d="M9 3l-2 3H3v14h18V6h-4l-2-3zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10z"/></svg></button>
+      <button class="icon" id="b-settings" title="Settings (S)"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7 7 0 0 0-1.7-1L15 3h-4l-.4 2.7a7 7 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7 7 0 0 0 1.7 1L11 21h4l.4-2.7a7 7 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg></button>
+      <button class="icon" id="b-help" title="Shortcuts &amp; gestures (?)"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 17h-2v-2h2zm2.1-7.7-.9.9c-.8.8-1.2 1.4-1.2 2.8h-2v-.5c0-1.1.4-2.1 1.2-2.8l1.2-1.3a2 2 0 1 0-3.4-1.4H8a4 4 0 1 1 7.1 2.3z"/></svg></button>
+      <button class="icon" id="b-about" title="About (A)"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2zm0-8h-2V7h2z"/></svg></button>
+      <button class="icon accent" id="b-full" title="Fullscreen (F)"><svg viewBox="0 0 24 24" class="i-enter"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg><svg viewBox="0 0 24 24" class="i-exit"><path d="M8 4h2v6H4V8h4zm6 0h2v4h4v2h-6zM4 14h6v6H8v-4H4zm10 0h6v2h-4v4h-2z"/></svg></button>
+    </nav>
+  </header>
+
+  <!-- Bottom dock -->
+  <footer id="dock" class="ui">
+    <div class="dock-row modes" id="modes" role="radiogroup" aria-label="Animation mode"></div>
+    <div class="dock-row themes" id="themes" role="radiogroup" aria-label="Color theme"></div>
+  </footer>
+
+  <!-- Gauges -->
+  <div id="speedo" class="ui" aria-hidden="true">
+    <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="48"/><circle class="arc" id="speedo-arc" cx="60" cy="60" r="48"/></svg>
+    <div class="speedo-in"><span id="speedo-dir">⟳</span><b id="speedo-val">0</b><small>RPM</small></div>
+  </div>
+  <div id="radar" class="ui" aria-hidden="true"><div class="sweep"></div><div class="cross"></div><div id="radar-dot"></div><span id="radar-pose">no hand</span></div>
+
+  <p id="credit">Manufactured by Saif Ur Rehman</p>
+
+  <div id="gesture-pill" aria-live="polite"></div>
+  <div id="mode-title" aria-hidden="true"><small></small><span></span></div>
+  <div id="toasts" aria-live="polite"></div>
+  <div id="loader" class="hidden"><div class="ring"></div><span id="loader-txt">Loading hand model…</span><div class="bar"><i id="loader-bar"></i></div></div>
+
+  <!-- Settings panel -->
+  <aside id="settings" class="panel" aria-label="Settings" aria-hidden="true">
+    <div class="panel-head"><h2>Settings</h2><button class="icon close" data-close="settings" title="Close (Esc)">✕</button></div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="t-motion">Motion</button><button class="tab" data-tab="t-visual">Visuals</button>
+      <button class="tab" data-tab="t-fx">Effects</button><button class="tab" data-tab="t-gesture">Gestures</button>
+    </div>
+    <div class="tab-body active" id="t-motion">
+      <label class="row">Hand sensitivity <output data-for="sensitivity"></output><input type="range" id="s-sensitivity" min="0.3" max="2" step="0.05" /></label>
+      <label class="row">Motion smoothing <output data-for="smoothing"></output><input type="range" id="s-smoothing" min="0" max="1" step="0.05" /></label>
+      <label class="row">Idle spin speed <output data-for="autoSpin"></output><input type="range" id="s-autoSpin" min="0" max="3" step="0.05" /></label>
+      <label class="row">Hand control style
+        <select id="s-style"><option value="flick">Flick — spin follows hand motion</option><option value="steer">Steer — hand position sets speed</option></select></label>
+      <label class="row">Globe motion style
+        <select id="s-motion"><option value="auto">Auto (from mode)</option><option value="steady">Steady</option><option value="breathe">Breathe</option><option value="sway">Sway</option><option value="precess">Precess</option><option value="bounce">Bounce</option><option value="heartbeat">Heartbeat</option><option value="wobble">Wobble</option><option value="figure8">Figure 8</option></select></label>
+      <label class="switch"><input type="checkbox" id="s-slowmo" /><span></span>Slow motion</label>
+      <label class="switch"><input type="checkbox" id="s-autopilot" /><span></span>Autopilot show (cycles modes)</label>
+      <label class="switch"><input type="checkbox" id="s-reduced" /><span></span>Reduced motion</label>
+    </div>
+    <div class="tab-body" id="t-visual">
+      <label class="row">Quality
+        <select id="s-quality"><option value="auto">Auto</option><option value="low">Low</option><option value="balanced">Balanced</option><option value="ultra">Ultra</option></select></label>
+      <label class="row">Particle density <output data-for="density"></output><input type="range" id="s-density" min="0.2" max="1" step="0.05" /></label>
+      <label class="switch"><input type="checkbox" id="s-bloom" /><span></span>Bloom glow</label>
+      <label class="switch"><input type="checkbox" id="s-hue" /><span></span>Hue cycling</label>
+      <label class="switch"><input type="checkbox" id="s-sparkles" /><span></span>Cursor sparkles</label>
+      <label class="switch"><input type="checkbox" id="s-sound" /><span></span>Sound (ambient + UI)</label>
+      <label class="switch"><input type="checkbox" id="s-fps" /><span></span>Show FPS</label>
+    </div>
+    <div class="tab-body" id="t-fx">
+      <p class="hint">Mix layers on top of the current mode. Changing mode resets these.</p>
+      <div id="fx-grid" class="fx-grid"></div>
+    </div>
+    <div class="tab-body" id="t-gesture">
+      <label class="row">Pinch 🤏
+        <select id="s-pinch"><option value="focus">Focus mode (zoom + shield)</option><option value="burst">Supernova burst</option><option value="shield">Toggle shield</option><option value="mode">Next mode</option></select></label>
+      <label class="row">Peace ✌
+        <select id="s-peace"><option value="theme">Next theme</option><option value="mode">Next mode</option><option value="remix">Remix</option><option value="burst">Supernova burst</option></select></label>
+      <label class="row">Point ☝
+        <select id="s-point"><option value="none">Nothing</option><option value="reverse">Reverse direction</option><option value="burst">Supernova burst</option></select></label>
+      <label class="switch"><input type="checkbox" id="s-radar" /><span></span>Show hand radar dot</label>
+      <p class="hint">Open palm resumes · hold a fist to pause · no hand → gentle idle spin.</p>
+    </div>
+    <div class="panel-foot"><button class="btn ghost" id="b-defaults">Restore defaults</button><button class="btn ghost" id="b-about2">About</button></div>
+  </aside>
+
+  <!-- About -->
+  <div id="about" class="modal" role="dialog" aria-modal="true" aria-labelledby="about-title" aria-hidden="true">
+    <div class="card">
+      <button class="icon close" data-close="about" title="Close">✕</button>
+      <div class="about-orb" aria-hidden="true"></div>
+      <h2 id="about-title">About Nebula Blaze</h2>
+      <dl>
+        <dt>Manufacturer</dt><dd>Saif Ur Rehman</dd>
+        <dt>Role</dt><dd>Student</dd>
+        <dt>Country</dt><dd>Pakistan</dd>
+      </dl>
+      <p class="small">Three.js + MediaPipe hand tracking, running entirely in your browser. Version 1.0</p>
+    </div>
+  </div>
+
+  <!-- Help -->
+  <div id="help" class="modal" role="dialog" aria-modal="true" aria-label="Shortcuts and gestures" aria-hidden="true">
+    <div class="card wide">
+      <button class="icon close" data-close="help" title="Close">✕</button>
+      <h2>Controls</h2>
+      <div class="help-grid">
+        <div><h3>Gestures</h3><ul>
+          <li><b>Move hand ←/→</b> spin, direction follows</li><li><b>Move hand ↑/↓</b> tilt</li><li><b>Fast swipe</b> energy boost</li>
+          <li><b>Open palm ✋</b> resume</li><li><b>Hold fist ✊</b> pause</li><li><b>Pinch 🤏</b> focus mode</li><li><b>Peace ✌</b> next theme</li></ul></div>
+        <div><h3>Mouse / touch</h3><ul>
+          <li><b>Drag</b> spin with inertia</li><li><b>Wheel / pinch</b> zoom</li><li><b>Click globe</b> ripple + burst</li><li><b>Double-click</b> supernova</li></ul></div>
+        <div><h3>Keyboard</h3><ul>
+          <li><kbd>Space</kbd> pause</li><li><kbd>F</kbd> fullscreen</li><li><kbd>R</kbd> reset</li><li><kbd>←</kbd><kbd>→</kbd> direction · <kbd>↑</kbd><kbd>↓</kbd> tilt</li>
+          <li><kbd>1</kbd>–<kbd>0</kbd> modes · <kbd>M</kbd> next mode</li><li><kbd>T</kbd> next theme · <kbd>X</kbd> remix</li>
+          <li><kbd>B</kbd> burst · <kbd>P</kbd> snapshot · <kbd>C</kbd> camera</li><li><kbd>H</kbd> hide UI · <kbd>S</kbd> settings · <kbd>A</kbd> about</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="fatal" class="modal" aria-hidden="true"><div class="card"><h2>Can't start 3D</h2><p id="fatal-msg"></p></div></div>
+
+  <script>
+    // Streamlit bridge: report readiness and size the frame to the window when embedded as a component.
+    (function () {
+      window.__embedded = window.parent !== window;
+      if (!window.__embedded) return;
+      function send(type, extra) { var m = { isStreamlitMessage: true, type: type }; for (var k in extra) m[k] = extra[k]; try { window.parent.postMessage(m, "*"); } catch (e) {} }
+      send("streamlit:componentReady", { apiVersion: 1 });
+      var last = 0;
+      function fit() { var h = 720; try { h = Math.max(480, window.parent.innerHeight); } catch (e) {} if (h !== last) { last = h; send("streamlit:setFrameHeight", { height: h }); } }
+      fit(); setInterval(fit, 800);
+    })();
+  </script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

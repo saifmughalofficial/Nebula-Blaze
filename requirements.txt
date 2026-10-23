@@ -1,0 +1,3 @@
+# Streamlit Community Cloud installs this automatically. Everything else (Three.js, MediaPipe,
+# fonts) is bundled in frontend/vendor and runs in the visitor's browser.
+streamlit>=1.40
